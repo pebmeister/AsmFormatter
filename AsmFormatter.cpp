@@ -51,7 +51,6 @@ bool AsmFormatter::load()
 		if (!fmat.label.empty())
 		{
 			printAtOffset(outfile, fmat.label, 0);
-
 			if (m_options.requireColon && fmat.label[fmat.label.size() -1] != ':')
 			{
 				outfile << ":";
