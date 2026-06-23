@@ -9,22 +9,18 @@ struct FormatOptions
     bool requireColon = true;
     bool labelOwnLine = true;
 
-    bool upperOpcodes = true;
-    bool upperDirectives = false;
-
     int opcodeColumn = 12;
     int operandColumn = 20;
     int commentColumn = 40;
 
-    int tabSize = 4;
-
-    bool expandTabs = true;
+    std::string inputfile;
+    std::string outputfile;
 };
 
 class AsmFormatter
 {
 public:
-    explicit AsmFormatter(const std::string& filename, const FormatOptions& options);
+    explicit AsmFormatter(const FormatOptions& options);
 
     bool load();
 
@@ -43,9 +39,10 @@ private:
         bool directive = false;
     };
 
-    std::string m_filename;
+    int m_column;
     FormatOptions m_options;
     AsmLine parseLine(const std::string& line) const;
+    void printAtOffset(std::ofstream& outputfile, const std::string& string, int position);
 };
 
 #endif
