@@ -2,12 +2,17 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <vector>
+#include <string_view>
+#include <ranges>
 
 #include "AsmFormatter.h"
 
 std::string ltrim(const std::string& s);
 std::string rtrim(const std::string& s);
 std::string trim(const std::string& s);
+std::vector<std::string> split_by_chars(const std::string& str, std::string_view delimiters);
+
 
 AsmFormatter::AsmFormatter(const FormatOptions& options)
 	: m_options(options)
@@ -18,17 +23,24 @@ bool AsmFormatter::load()
 {
 	std::ifstream file(m_options.inputfile);
 	std::ofstream outfile(m_options.outputfile);
-
+  std::vector<std::string> lines;
 	if (!file)
 	{
 		outfile.close();
 		return false;
 	}
 
-	std::string line;
+	std::string ln;
+
 	auto blanklines = 0;
-	while (std::getline(file, line))
+	while (std::getline(file, ln))
 	{
+      lines.push_back(ln);
+ }
+ file.close();
+
+  for (auto& line: lines)
+  {
 		auto fmat = parseLine(line);
 		m_column = 0;
 		if (fmat.blankLine)
@@ -69,12 +81,23 @@ bool AsmFormatter::load()
 				}
 			}
 		}
+
+
+               auto ops = split_by_chars(fmat.operand, " \t");
+              if (!ops.empty()) {
+
+   if (m_options.equToEquals && 
+        (ops[0] == ".equ" || ops[0] == ".EQU")) 
+      fmat.operand  = "=" + fmat.operand.substr(4);
+              }
+
 		printAtOffset(outfile, fmat.opcode, m_options.opcodeColumn);
 		printAtOffset(outfile, fmat.operand, m_options.operandColumn);
 		printAtOffset(outfile, fmat.comment, m_options.commentColumn);
 
 		outfile << "\n";
-	}
+	
+        }
 	outfile.close();
 	return true;
 }
@@ -246,4 +269,37 @@ std::string rtrim(const std::string& s)
 std::string trim(const std::string& s)
 {
 	return rtrim(ltrim(s));
+}
+
+std::vector<std::string> split_by_chars(const std::string& str, std::string_view delimiters) {
+    std::vector<std::string> tokens;
+    if (str.empty()) return tokens;
+
+    // Use string_view for efficient scanning
+    std::string_view sv(str);
+    size_t start = 0;
+
+    while (start < sv.length()) {
+        // Find the first occurrence of ANY character in the delimiters string
+        size_t end = sv.find_first_of(delimiters, start);
+
+        // If no delimiter is found, grab the rest of the string
+        if (end == std::string_view::npos) {
+            tokens.emplace_back(sv.substr(start));
+            break;
+        }
+
+        // Push the token (even if empty, e.g., consecutive delimiters)
+        tokens.emplace_back(sv.substr(start, end - start));
+        
+        // Move past the delimiter
+        start = end + 1;
+    }
+
+    // Handle trailing delimiter edge case (creates an empty trailing token)
+    if (!sv.empty() && delimiters.find(sv.back()) != std::string_view::npos) {
+        tokens.emplace_back("");
+    }
+
+    return tokens;
 }
