@@ -22,11 +22,9 @@ AsmFormatter::AsmFormatter(const FormatOptions& options)
 bool AsmFormatter::load()
 {
 	std::ifstream file(m_options.inputfile);
-	std::ofstream outfile(m_options.outputfile);
   std::vector<std::string> lines;
 	if (!file)
 	{
-		outfile.close();
 		return false;
 	}
 
@@ -38,6 +36,7 @@ bool AsmFormatter::load()
       lines.push_back(ln);
  }
  file.close();
+	std::ofstream outfile(m_options.outputfile);
 
   for (auto& line: lines)
   {
@@ -82,7 +81,14 @@ bool AsmFormatter::load()
 			}
 		}
 
-
+   if (fmat.opcode == ".str")
+   {
+       fmat.opcode = ".byte";
+   }
+   if (fmat.opcode == ".byt")
+   {
+       fmat.opcode = ".byte";
+   }
                auto ops = split_by_chars(fmat.operand, " \t");
               if (!ops.empty()) {
 
