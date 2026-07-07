@@ -14,6 +14,8 @@ std::string rtrim(const std::string& s);
 std::string trim(const std::string& s);
 std::vector<std::string> split_by_chars(const std::string& str, std::string_view delimiters);
 std::string to_lower(std::string s);
+std::string to_upper(std::string s);
+bool is_hex_asm(const std::string& s);
 
 AsmFormatter::AsmFormatter(const FormatOptions& options)
     : m_options(options)
@@ -91,7 +93,7 @@ bool AsmFormatter::load()
             }
         }
 
-        auto op = to_lowwer(fmat.opcode);
+        auto op = to_lower(fmat.opcode);
         if (op == ".str")
         {
             op = ".byte";
@@ -103,15 +105,23 @@ bool AsmFormatter::load()
         }
 
         auto ops = split_by_chars(fmat.operand, " \t");
-
-        if (!ops.empty())
+        auto operands  = std::string("");
+        for (auto& operand : ops)
         {
-            auto op = to_lowwer(ops[0]);
-            if (m_options.equToEquals && op == ".equ")
-            {
-                fmat.operand = "=" + fmat.operand.substr(4);
+            auto op_out = operand;
+            
+            auto op = to_lower(operand);
+            if (m_options.equToEquals && op == ".equ") {
+                op_out = "=";
             }
+            if (is_hex_asm(op)) {
+                if (m_options.forceLowerHex) op_out = op;
+                if (m_options.forceUpperHex) op_out = to_upper(op);
+            }
+            
+            operands += op_out + " ";
         }
+        fmat.operand = rtrim(operands);
 
         printAtOffset(outfile, fmat.opcode, m_options.opcodeColumn);
         printAtOffset(outfile, fmat.operand, m_options.operandColumn);
@@ -239,7 +249,7 @@ AsmFormatter::AsmLine AsmFormatter::parseLine(const std::string& rawLine) const
 
         nextToken = to_lower(codePart.substr(
             lookAheadIdx,
-            tokenEnd - lookAheadIdx_);
+            tokenEnd - lookAheadIdx));
     }
 
     // 5. Categorize based on look-ahead context
@@ -379,4 +389,38 @@ std::string to_lower(std::string s) {
     std::ranges::transform(s, s.begin(),
         [](unsigned char c) { return std::tolower(c); });
     return s;
+}
+
+std::string to_upper(std::string s) {
+    std::ranges::transform(s, s.begin(),
+        [](unsigned char c) { return std::toupper(c); });
+    return s;
+}
+
+constexpr bool is_hex_digit(char c) {
+    return (c >= '0' && c <= '9') ||
+           (c >= 'a' && c <= 'f') ||
+           (c >= 'A' && c <= 'F');
+}
+
+bool is_hex_asm(const std::string& s) {
+    std::string_view v = s;
+
+    // Strip trailing punctuation like ',' or ';'
+    while (!v.empty() && (v.back() == ',' || v.back() == ';'))
+        v.remove_suffix(1);
+
+    // Strip assembler prefixes
+    if (v.starts_with("$")) {
+        v.remove_prefix(1);
+    } else if (v.starts_with("#$")) {
+        v.remove_prefix(2);
+    }
+
+    // Empty after prefix? Not valid.
+    if (v.empty())
+        return false;
+
+    // Check all remaining characters
+    return std::ranges::all_of(v, [](char c) { return is_hex_digit(c); });
 }
