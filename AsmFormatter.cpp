@@ -5,13 +5,15 @@
 #include <vector>
 #include <string_view>
 #include <ranges>
-
+#include <algorithm>
+#include <cctype>
 #include "AsmFormatter.h"
 
 std::string ltrim(const std::string& s);
 std::string rtrim(const std::string& s);
 std::string trim(const std::string& s);
 std::vector<std::string> split_by_chars(const std::string& str, std::string_view delimiters);
+std::string to_lower(std::string s);
 
 AsmFormatter::AsmFormatter(const FormatOptions& options)
     : m_options(options)
@@ -89,12 +91,13 @@ bool AsmFormatter::load()
             }
         }
 
-        if (fmat.opcode == ".str")
+        auto op = to_lowwer(fmat.opcode);
+        if (op == ".str")
         {
-            fmat.opcode = ".byte";
+            op = ".byte";
         }
 
-        if (fmat.opcode == ".byt")
+        if (op == ".byt")
         {
             fmat.opcode = ".byte";
         }
@@ -103,8 +106,8 @@ bool AsmFormatter::load()
 
         if (!ops.empty())
         {
-            if (m_options.equToEquals &&
-                (ops[0] == ".equ" || ops[0] == ".EQU"))
+            auto op = to_lowwer(ops[0]);
+            if (m_options.equToEquals && op == ".equ")
             {
                 fmat.operand = "=" + fmat.operand.substr(4);
             }
@@ -234,9 +237,9 @@ AsmFormatter::AsmLine AsmFormatter::parseLine(const std::string& rawLine) const
             ++tokenEnd;
         }
 
-        nextToken = codePart.substr(
+        nextToken = to_lower(codePart.substr(
             lookAheadIdx,
-            tokenEnd - lookAheadIdx);
+            tokenEnd - lookAheadIdx_);
     }
 
     // 5. Categorize based on look-ahead context
@@ -370,4 +373,10 @@ std::vector<std::string> split_by_chars(
     }
 
     return tokens;
+}
+
+std::string to_lower(std::string s) {
+    std::ranges::transform(s, s.begin(),
+        [](unsigned char c) { return std::tolower(c); });
+    return s;
 }
