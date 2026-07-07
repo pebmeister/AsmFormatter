@@ -8,11 +8,14 @@ struct FormatOptions
 {
     bool requireColon = true;
     bool labelOwnLine = true;
+    bool equToEquals = true;
+    bool forceUpperHex = false;
+    bool forceLowerHex = true;
 
     int opcodeColumn = 12;
     int operandColumn = 20;
     int commentColumn = 40;
-
+    
     std::string inputfile;
     std::string outputfile;
 };
